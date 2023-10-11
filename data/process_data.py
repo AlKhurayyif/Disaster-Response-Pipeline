@@ -2,56 +2,72 @@ import sys
 from sqlalchemy import create_engine 
 import pandas as pd
 
-
 def load_data(messages_filepath, categories_filepath):
-     # Read messages and categories
-     messages = pd.read_csv(messages_filepath)
-     categories = pd.read_csv(categories_filepath)
-    
-     # Merge the two dataframes
-     df = messages.merge(categories, on='id')
-     return df
+    """
+    Load data from message and category CSV files and merge them.
 
+    Args:
+        messages_filepath (str): Filepath to the messages CSV file.
+        categories_filepath (str): Filepath to the categories CSV file.
+
+    Returns:
+        df (DataFrame): Merged DataFrame containing messages and categories.
+    """
+    messages = pd.read_csv(messages_filepath)
+    categories = pd.read_csv(categories_filepath)
+    
+    df = messages.merge(categories, on='id')
+    return df
 
 def clean_data(df):
-      # Split categories into different columns
-     categories = df['categories'].str.split(';', expand=True)
-    
-     # Extract column names from the first row
-     row = categories.iloc[0]
-     category_colnames = row.apply(lambda x: x.split('-')[0])
-     categories.columns = category_colnames
-    
-     # Convert category values to 0 or 1
-     for column in categories:
-         categories[column] = categories[column].str[-1].astype(int)
-    
-     # Drop the original categories column from df
-     df = df.drop(columns=['categories'])
-    
-     # Concatenate the original dataframe with the new categories dataframe
-     df = pd.concat([df, categories], axis=1)
-    
-     # Drop duplicates
-     df = df.drop_duplicates()
-    
-     # Drop rows with 'related' column equal to 2
-     df = df[df['related'] != 2]
-    
-     # Convert 'id' column to string type
-     df['id'] = df['id'].astype(str)
-    
-     return df   
+    """
+    Clean and preprocess the DataFrame.
 
+    Args:
+        df (DataFrame): Input DataFrame containing messages and categories.
+
+    Returns:
+        df (DataFrame): Cleaned and preprocessed DataFrame.
+    """
+    categories = df['categories'].str.split(';', expand=True)
     
+    row = categories.iloc[0]
+    category_colnames = row.apply(lambda x: x.split('-')[0])
+    categories.columns = category_colnames
+    
+    for column in categories:
+        categories[column] = categories[column].str[-1].astype(int)
+    
+    df = df.drop(columns=['categories'])
+    
+    df = pd.concat([df, categories], axis=1)
+    
+    df = df.drop_duplicates()
+    
+    df = df[df['related'] != 2]
+    
+    df['id'] = df['id'].astype(str)
+    
+    return df   
+
 def save_data(df, database_filename):
+    """
+    Save the cleaned DataFrame to a SQLite database.
+
+    Args:
+        df (DataFrame): Cleaned and preprocessed DataFrame.
+        database_filename (str): Filepath to the SQLite database.
+    """
     engine = create_engine(f'sqlite:///{database_filename}')
     df.to_sql('messages', engine, index=False, if_exists='replace')
 
-    
 def main():
-    if len(sys.argv) == 4:
+    """
+    Main function to load, clean, and save data to a SQLite database.
 
+    Expects command line arguments for the messages file, categories file, and database file.
+    """
+    if len(sys.argv) == 4:
         messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
 
         print('Loading data...\n    MESSAGES: {}\n    CATEGORIES: {}'
@@ -73,7 +89,6 @@ def main():
               'to as the third argument. \n\nExample: python process_data.py '\
               'disaster_messages.csv disaster_categories.csv '\
               'DisasterResponse.db')
-
 
 if __name__ == '__main__':
     main()
