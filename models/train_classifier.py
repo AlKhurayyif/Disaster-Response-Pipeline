@@ -15,8 +15,18 @@ import pickle
 
 nltk.download('punkt')
 
-
 def load_data(database_filepath):
+    """
+    Load data from a SQLite database.
+
+    Args:
+        database_filepath (str): Filepath to the SQLite database.
+
+    Returns:
+        X (Series): A Series containing the messages.
+        Y (DataFrame): A DataFrame containing the target categories.
+        category_names (list): List of category names.
+    """
     engine = create_engine('sqlite:///' + database_filepath)
     if not engine.dialect.has_table(engine, "DisasterResponse"):
         raise ValueError("DisasterResponse table does not exist in the database!")
@@ -27,11 +37,26 @@ def load_data(database_filepath):
     return X, Y, category_names
 
 def tokenize(text):
+    """
+    Tokenize and lemmatize a text.
+
+    Args:
+        text (str): Input text.
+
+    Returns:
+        list: List of tokenized and lemmatized words.
+    """
     tokens = word_tokenize(text)
     lemmatizer = nltk.WordNetLemmatizer()
     return [lemmatizer.lemmatize(token).lower().strip() for token in tokens]
 
 def build_model():
+    """
+    Build a machine learning pipeline.
+
+    Returns:
+        pipeline: Machine learning pipeline.
+    """
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
@@ -40,6 +65,15 @@ def build_model():
     return pipeline
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    """
+    Evaluate a machine learning model and print classification reports.
+
+    Args:
+        model: Trained machine learning model.
+        X_test (Series): Test input data.
+        Y_test (DataFrame): Test target data.
+        category_names (list): List of category names.
+    """
     Y_pred = model.predict(X_test)
     
     for i, category in enumerate(category_names):
@@ -50,10 +84,22 @@ def evaluate_model(model, X_test, Y_test, category_names):
         print(report)
 
 def save_model(model, model_filepath):
+    """
+    Save a trained machine learning model to a pickle file.
+
+    Args:
+        model: Trained machine learning model.
+        model_filepath (str): Filepath to save the model.
+    """
     with open(model_filepath, 'wb') as file:
         pickle.dump(model, file)
 
 def main():
+    """
+    Main function to train and save a machine learning model.
+
+    Expects command line arguments for the database filepath and model filepath.
+    """
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
